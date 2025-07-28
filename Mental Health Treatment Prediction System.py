@@ -45,4 +45,3 @@ sns.barplot(x=top_countries.index, y=top_countries.values, palette="viridis")
 plt.xticks(rotation=45)
 plt.title("Top 10 Countries")
 plt.show()
-
