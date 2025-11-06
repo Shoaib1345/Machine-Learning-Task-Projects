@@ -1,0 +1,102 @@
+# -------------------------------
+# Naive Bayes Model with Explainability
+# -------------------------------
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    classification_report,
+    confusion_matrix
+)
+
+# Load dataset
+data = pd.read_csv("survey lung cancer.csv")
+
+# Encode categorical variables
+label_encoders = {}
+for col in ["GENDER", "LUNG_CANCER"]:
+    le = LabelEncoder()
+    data[col] = le.fit_transform(data[col])
+    label_encoders[col] = le
+
+# Split features and target
+X = data.drop("LUNG_CANCER", axis=1)
+y = data["LUNG_CANCER"]
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Train the Naive Bayes model
+model = GaussianNB()
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate performance
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+
+print("=== Model Performance ===")
+print(f"Accuracy : {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall   : {recall:.4f}")
+print(f"F1-Score : {f1:.4f}")
+print("\n=== Classification Report ===")
+print(classification_report(y_test, y_pred, target_names=["No", "Yes"]))
+
+# Confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6, 4))
+sns.heatmap(
+    cm, annot=True, fmt="d", cmap="Blues",
+    xticklabels=["Pred No", "Pred Yes"],
+    yticklabels=["True No", "True Yes"]
+)
+plt.title("Naive Bayes Confusion Matrix")
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.show()
+
+# -------------------------------
+# Explainability Section
+# -------------------------------
+
+# Feature influence (mean and variance per class)
+feature_influence = pd.DataFrame({
+    "Feature": X.columns,
+    "Mean (No Cancer)": model.theta_[0],
+    "Mean (Cancer)": model.theta_[1],
+    "Variance (No Cancer)": model.var_[0],
+    "Variance (Cancer)": model.var_[1],
+})
+
+print("\n=== Feature Influence (Model Explainability) ===")
+print(feature_influence.round(3))
+
+# Visualize feature means per class
+feature_influence_melt = feature_influence.melt(
+    id_vars="Feature",
+    value_vars=["Mean (No Cancer)", "Mean (Cancer)"],
+    var_name="Class",
+    value_name="Mean Value"
+)
+
+plt.figure(figsize=(10, 6))
+sns.barplot(data=feature_influence_melt, x="Feature", y="Mean Value", hue="Class")
+plt.xticks(rotation=45, ha="right")
+plt.title("Feature Mean Comparison by Class (Explainability)")
+plt.tight_layout()
+plt.show()
